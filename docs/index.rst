@@ -1,4 +1,4 @@
-Welcome to StroboPy's documentation!
+Welcome to strobopy's documentation!
 ======================================
 
 .. toctree::

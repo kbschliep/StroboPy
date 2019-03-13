@@ -38,8 +38,8 @@ and "help wanted" is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-StroboPy could always use more documentation, whether as part of the
-official StroboPy docs, in docstrings, or even on the web in blog posts,
+strobopy could always use more documentation, whether as part of the
+official strobopy docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback

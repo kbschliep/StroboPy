@@ -33,7 +33,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
-    description="A set of algorithms and scripts useful for the analysis of stroboscopic ultrafast electron microscopy data. ",
+    description="Strobopy contains algorithms and scripts useful for the analysis of stroboscopic ultrafast electron microscopy data.",
     entry_points={
         'console_scripts': [
             'strobopy=strobopy.cli:main',

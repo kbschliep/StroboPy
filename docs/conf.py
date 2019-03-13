@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'StroboPy'
+project = u'strobopy'
 copyright = u"2019, Karl Schliep"
 author = u"Karl Schliep"
 
@@ -129,7 +129,7 @@ latex_elements = {
 # [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'strobopy.tex',
-     u'StroboPy Documentation',
+     u'strobopy Documentation',
      u'Karl Schliep', 'manual'),
 ]
 
@@ -140,7 +140,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (master_doc, 'strobopy',
-     u'StroboPy Documentation',
+     u'strobopy Documentation',
      [author], 1)
 ]
 
@@ -152,7 +152,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'strobopy',
-     u'StroboPy Documentation',
+     u'strobopy Documentation',
      author,
      'strobopy',
      'One line description of project.',

@@ -21,8 +21,8 @@ deploy:
   provider: pypi
   distributions: sdist bdist_wheel
   user: kbschliep
-  password: 
-    secure: deploy.password
+  password:
+    secure: PLEASE_REPLACE_ME
   on:
     tags: true
     repo: kbschliep/strobopy

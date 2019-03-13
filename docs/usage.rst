@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use StroboPy in a project::
+To use strobopy in a project::
 
     import strobopy

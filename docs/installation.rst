@@ -8,13 +8,13 @@ Installation
 Stable release
 --------------
 
-To install StroboPy, run this command in your terminal:
+To install strobopy, run this command in your terminal:
 
 .. code-block:: console
 
     $ pip install strobopy
 
-This is the preferred method to install StroboPy, as it will always install the most recent stable release.
+This is the preferred method to install strobopy, as it will always install the most recent stable release.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
@@ -26,7 +26,7 @@ you through the process.
 From sources
 ------------
 
-The sources for StroboPy can be downloaded from the `Github repo`_.
+The sources for strobopy can be downloaded from the `Github repo`_.
 
 You can either clone the public repository:
 

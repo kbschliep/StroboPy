@@ -1,4 +1,4 @@
-* StroboPy version:
+* strobopy version:
 * Python version:
 * Operating System:
 

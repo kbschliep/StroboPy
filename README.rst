@@ -1,5 +1,5 @@
 ========
-StroboPy
+strobopy
 ========
 
 
@@ -20,7 +20,7 @@ StroboPy
 
 
 
-A set of algorithms and scripts useful for the analysis of stroboscopic ultrafast electron microscopy data. 
+Strobopy contains algorithms and scripts useful for the analysis of stroboscopic ultrafast electron microscopy data.
 
 
 * Free software: MIT license
