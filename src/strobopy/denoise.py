@@ -1,5 +1,5 @@
 import numpy as np
-def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=False):
+def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=False, diff=False):
     """Check if value is an outlier based on standard deviations
     quart and num_stdev determine the qualifiers for the outlier (mean +- 1.5*(inner quartile) and mean +- num_stdev *std)
     get_cutoff=True gets the value of the cutoff as determined by num_stdev and quart
@@ -7,19 +7,22 @@ def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=F
     returns boolean array the same size as image where each element is True if an outlier
 
     """
-
     if dist=='Normal':
+        """Check if value is an outlier based on normal distributions"""
         m=np.mean(image)
         std=np.std(image)
         cutoff=num_stdev*std
         lower, upper = m-cutoff, m+cutoff
         outs =np.logical_or(image<=lower,image>=upper)
         if index==False:
+            if get_cutoff==True:
+                return outs, (lower, upper)
             return outs
-        if get_cutoff==False:
-            return outs
+        if index==True:
+            if get_cutoff==True:
+                return outs, np.argwhere(outs),(lower, upper)
+            return outs, np.argwhere(outs)
 
-        return outs, (lower, upper)
     else:
         """Check if value is an outlier based on percentiles"""
         uquart=100-quart
@@ -29,20 +32,22 @@ def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=F
         lower, upper = q25 - cut_off, q75 + cut_off
         outs =np.logical_or(image<=lower,image>=upper)
         if index==False:
-            return np.argwhere(outs)
-        if get_cutoff==False:
+            if get_cutoff==True:
+                return outs, (lower, upper)
             return outs
+        if index==True:
+            if get_cutoff==True:
+                return outs, np.argwhere(outs),(lower, upper)
+            return outs, np.argwhere(outs)
 
-        return outs, (lower, upper)
-
-
-def local_mean(matrix, x_axis, y_axis, NN=1):
+def local_mean(matrix, y_axis, x_axis, NN=1):
     '''Gets the local mean around a specific index in the matrix
         with NN 1=3x3 -center point = 8 points NN; 2=5x5 -center pt = 24 points!
         Now works with any size by folding around at edges
         Returns the local mean for the specified x and y
         '''
-
+    if (NN+2)**2>=matrix.size:
+        raise ValueError("NN is larger than input matrix")
     local_data=[]
     numb=[]
     nsize=matrix.shape[0]-1
@@ -52,36 +57,37 @@ def local_mean(matrix, x_axis, y_axis, NN=1):
             if m==0 and n==0:
                 continue
 
-            if  x_axis+n>nsize and   y_axis+m>msize:  #Cycles around far corner back to 0,0 for arbitrary size
-                k = (x_axis+n)
+            if  y_axis+n>nsize and   x_axis+m>msize:  #Cycles around far corner back to 0,0 for arbitrary size
+                k = (y_axis+n)
                 k = k % nsize-1
-                l = (y_axis+m)
+                l = (x_axis+m)
                 l = l % msize-1
                 local_data.append(matrix[k, l])
                 numb.append([k, l])
                 continue
 
-            if x_axis+n>nsize:
-                k = x_axis+n
+            if y_axis+n>nsize:
+                k = y_axis+n
                 k = k% nsize-1
-                local_data.append(matrix[k, y_axis + m])
-                numb.append([k,y_axis + m])
+                local_data.append(matrix[k, x_axis + m])
+                numb.append([k,x_axis + m])
                 continue
-            if   y_axis+m>msize:
-                l = (y_axis+m)
+            if   x_axis+m>msize:
+                l = (x_axis+m)
                 l = l % msize-1
-                local_data.append(matrix[x_axis +n, l])
-                numb.append([x_axis, l])
+                local_data.append(matrix[y_axis +n, l])
+                numb.append([y_axis, l])
                 continue
 
-            local_data.append(matrix[x_axis+n,y_axis+m])
-            numb.append([x_axis+n,y_axis+m])
+            local_data.append(matrix[y_axis+n,x_axis+m])
+            numb.append([y_axis+n,x_axis+m])
 
     loc_mean=np.mean(local_data)
 
     return loc_mean
 
 def diff_outliers(image,quart=5,num_stdev=2,dist='Normal',axis='both',index=False):
+    from warnings import warn
     ''' Returns an array of shape image with the outliers (based on X and Y derivatives aka slopes)
     of the image of type True. Outliers are designated by outliers function.
     axis determines the direction of derivate and selecting both combines both derivatives
@@ -89,6 +95,8 @@ def diff_outliers(image,quart=5,num_stdev=2,dist='Normal',axis='both',index=Fals
     '''
     if image.ndim !=2:
         raise ValueError("input not 2 dim (n x m)")
+    if image.size<25:
+        warn('Outliers may not be found since Matrix dimensions are small')
     mat=image
     if axis=='both':
         A0=np.expand_dims(mat[0,:],axis=0)
