@@ -1,4 +1,4 @@
-import numpy as np
+
 def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=False, diff=False):
     """Check if value is an outlier based on standard deviations
     quart and num_stdev determine the qualifiers for the outlier (mean +- 1.5*(inner quartile) and mean +- num_stdev *std)
@@ -7,6 +7,7 @@ def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=F
     returns boolean array the same size as image where each element is True if an outlier
 
     """
+    import numpy as np
     if dist=='Normal':
         """Check if value is an outlier based on normal distributions"""
         m=np.mean(image)
