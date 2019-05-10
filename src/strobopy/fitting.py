@@ -1,5 +1,71 @@
+# -*- coding: utf-8 -*-
+
+"""Fitting module."""
 import numpy as np
-from warnings import warn
+import matplotlib.pyplot as plt
+def mask_maker(image,stds=3):
+    '''Returns a boolean mask for numbers inside of the mean +- stds * std'''
+    bool_mask=~(image>np.mean(image)+stds*np.std(image))|(image<np.mean(image)-stds*np.std(image))
+    return bool_mask
+
+def masker(image, mask=None, stds=None, copy=True):
+    '''Returns a masked numpy array'''
+    im=image
+    if copy==True:
+        im=image.copy()
+
+    if (stds!=0) & (stds!=None):
+        m=mask_maker(im,stds=stds)
+        a=np.ma.masked_where(m,image)
+        return a
+    if (stds==0):
+        return image
+    
+    if (mask!=None).any():
+        a=np.ma.masked_where(mask,im)
+        return a
+    
+    return image
+
+def positions_nonzero(masked_image,z_values=False):
+    '''Return positions where the mask is not'''
+    y,x=np.ma.nonzero(masked_image)
+    if z_values==True:
+        z=masked_image[y.astype(np.int),x.astype(np.int)]
+        mim_coordinates=np.concatenate((x[:,np.newaxis],y[:,np.newaxis],z[:,np.newaxis]),axis=1)
+        return mim_coordinates
+    return y,x
+
+def fit_linear(XY, R2=False):
+    from sklearn.linear_model import LinearRegression
+    X,y=XY[:,0].reshape(-1, 1),XY[:,1].reshape(-1, 1)
+    reg = LinearRegression().fit(X, y)
+    params=reg.coef_,reg.intercept_
+    if R2==True:
+        params.append(reg.score)
+    return [params[0][0][0],params[1][0]]
+
+def slope_proj(m):
+    '''
+    Gets 2 perpendicular vectors from a slope
+    Returned as a Matrix [[x1,y1],[x2,y2]]
+    '''
+    v1=np.array([1,m])/(1**2+m**2)**.5
+    mp=-1/m
+    v2=np.array([1,mp])/(1**2+mp**2)**.5
+    M=np.array((v1,v2))
+    return M
+def slope_proj_inv(M):
+    m=M[0,1]/M[0,0]
+    return m
+
+def position_means(masked_image):
+    '''Returns the mean y,x positions'''
+    b,a=positions_nonzero(masked_image)
+    a_m=np.nanmean(a)
+    b_m=np.nanmean(b)
+    return b_m,a_m
+import numpy as np
 def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=False, diff=False):
     """Check if value is an outlier based on standard deviations
     quart and num_stdev determine the qualifiers for the outlier (mean +- 1.5*(inner quartile) and mean +- num_stdev *std)
@@ -8,7 +74,6 @@ def outliers(image,quart=5, num_stdev=2, get_cutoff=False, dist='Normal',index=F
     returns boolean array the same size as image where each element is True if an outlier
 
     """
-
     if dist=='Normal':
         """Check if value is an outlier based on normal distributions"""
         m=np.mean(image)
@@ -89,6 +154,7 @@ def local_mean(matrix, y_axis, x_axis, NN=1):
     return loc_mean
 
 def diff_outliers(image,quart=5,num_stdev=2,dist='Normal',axis='both',index=False):
+    from warnings import warn
     ''' Returns an array of shape image with the outliers (based on X and Y derivatives aka slopes)
     of the image of type True. Outliers are designated by outliers function.
     axis determines the direction of derivate and selecting both combines both derivatives
@@ -245,7 +311,6 @@ def thresh_norm_filt(image,thresh=0,norm=1):
     filt=denoise_bilateral(normed,multichannel=False)
     norm=thresh_norm(filt,norm=norm,copy=False)
     return norm
-
 def cleaner(image,thresh=0,num_stdev=1,NN=3,norm=1,copy=True):
     '''Combines outlier removal with thresholding and normalizing
     Returns a cleaned image
@@ -257,3 +322,248 @@ def cleaner(image,thresh=0,num_stdev=1,NN=3,norm=1,copy=True):
     out_m=remove_outliers(m, num_stdev=num_stdev,NN=NN, diff=True)
     cleaned_im=thresh_norm_filt(out_m,thresh=thresh,norm=norm)
     return cleaned_im
+def slope_from_points(pts):
+    M=np.array(pts)
+    if (M[0,0]-M[1,0])==0:
+        return np.Inf
+    m=(M[0,1]-M[1,1])/(M[0,0]-M[1,0])
+
+    return m
+def perp_slope_from_points(pts):
+    m=slope_from_points(pts)
+    if m==0:
+        return np.Inf
+    return -1/m
+
+def get_line_params(pts):
+    m=slope_from_points(pts)
+    b=m*pts[0,0]-pts[0,1]
+    return m,b
+    
+def get_line_width_coords(pts, width):
+    '''Gets coordinates (x,y) coordinates for 4 positions based on width given
+       pts is input as [(x1,y1),(x2,y2)]
+       returns start, end 
+       start = [bottom_start,top_start]
+       bottom_start=(x,y)
+       top_start=(x,y)
+       similar for end
+    '''
+    pts=np.array(pts)
+    m,b=get_line_params(pts)
+    x1,x2=pts[0,0],pts[1,0]
+    y1,y2=pts[0,1],pts[1,1]
+    theta=np.arctan(m)
+    if m<0:
+        if x1>x2:
+            botx_start=np.rint(x2-np.cos(theta)*width/2)
+            topx_start=np.rint(x2+np.cos(theta)*width/2)
+            botx_end=np.rint(x1-np.cos(theta)*width/2)
+            topx_end=np.rint(x1+np.cos(theta)*width/2)
+            
+        if x1<x2:
+            botx_start=np.rint(x1-np.cos(theta)*width/2)
+            topx_start=np.rint(x2+np.cos(theta)*width/2)
+            botx_end=np.rint(x1-np.cos(theta)*width/2)
+            topx_end=np.rint(x2-np.cos(theta)*width/2)
+    
+        
+        boty_start=np.rint(y1-np.sin(theta)*width/2)
+        topy_start=np.rint(y1+np.sin(theta)*width/2)
+        boty_end=np.rint(y2-np.cos(theta)*width/2)
+        topy_end=np.rint(y2+np.cos(theta)*width/2)
+        
+        
+    if m>0:
+        if x1>x2:
+            botx_start=np.rint(x1+np.cos(theta)*width/2)
+            topx_start=np.rint(x1-np.cos(theta)*width/2)
+            botx_end=np.rint(x2+np.cos(theta)*width/2)
+            topx_end=np.rint(x2-np.cos(theta)*width/2)
+            
+        if x1<x2:
+            botx_start=np.rint(x1+np.cos(theta)*width/2)
+            topx_start=np.rint(x1-np.cos(theta)*width/2)
+            botx_end=np.rint(x2+np.cos(theta)*width/2)
+            topx_end=np.rint(x2-np.cos(theta)*width/2)
+            
+        
+        boty_start=np.rint(y1-np.sin(theta)*width/2)
+        topy_start=np.rint(y1+np.sin(theta)*width/2)
+        boty_end=np.rint(y2-np.cos(theta)*width/2)
+        topy_end=np.rint(y2+np.cos(theta)*width/2)
+        
+    if m==0:
+        if x1>x2:
+            botx_start=np.rint(x2)
+            topx_start=np.rint(x2)
+            botx_end=np.rint(x1)
+            topx_end=np.rint(x1)
+        if x1<x2:
+            botx_start=np.rint(x1)
+            topx_start=np.rint(x1)
+            botx_end=np.rint(x2)
+            topx_end=np.rint(x2)
+
+        boty_start=np.rint(y1-width/2)
+        topy_start=np.rint(y1+width/2)
+        boty_end=np.rint(y2-width/2)
+        topy_end=np.rint(y2+width/2)
+              
+    if m==np.inf:
+        if y1>y2:
+            boty_start=np.rint(y2)
+            topy_start=np.rint(y2)
+            boty_end=np.rint(y1)
+            topy_end=np.rint(y1)
+        if y1<y2:
+            boty_start=np.rint(y1)
+            topy_start=np.rint(y1)
+            boty_end=np.rint(y2)
+            topy_end=np.rint(y2)
+            
+        botx_start=np.rint(x1+width/2)
+        topx_start=np.rint(x1-width/2)
+        botx_end=np.rint(x2+width/2)
+        topx_end=np.rint(x2-width/2)    
+#     return m
+    c1=(botx_start.astype(int),boty_start.astype(int))
+    c2=(topx_start.astype(int),topy_start.astype(int))
+    start=[c1,c2]
+    start.sort(key=lambda x:x[1])
+    c3=(botx_end.astype(int),boty_end.astype(int))
+    c4=(topx_end.astype(int),topy_end.astype(int))
+    end=[c3,c4]
+    end.sort(key=lambda x:x[1])
+    outlist=[start,end]
+    outlist.sort(key=lambda x:x[0][0])
+    return outlist[0],outlist[1]
+def linescan(image,pts=None,filt_stdevs=3, mask_stdevs=1, nearest_nb=3,mode='Linear', pad=True,show_im=False, plotline=False,overlay=False, width=100):
+    '''
+    Fit line to data and project data onto that line
+    '''
+    masked_im=masker(cleaner(image,num_stdev=filt_stdevs, NN=nearest_nb),stds=mask_stdevs)
+    x=positions_nonzero(masked_im,z_values=True)
+    x_orig=x[:,0].copy()
+    if pts!=None:
+        mode='Points'
+    if mode in ['Linear','PCA']:
+        
+        if mode=='Linear':
+            XY=x[:,:2].copy()
+            line=fit_linear(XY)
+            directions=slope_proj(line[0])
+        if mode=='PCA':
+            pca=PCA(n_components=2)
+            a=pca.fit(x[:,:2])
+            directions=a.components_
+        
+        x[:,:2]=np.dot(x[:,:2],directions.T)
+        ids=x[:,0].astype(np.int)-np.min(x[:,0].astype(np.int)) ## Has to be positive
+        data=x[:,2]
+        bins=np.bincount(ids,weights=data)
+        y=bins[bins!=0]
+        Y=y/np.unique(ids,return_counts=True)[1] ## Normalized to get mean rather than sum
+        
+        x_lnrange=np.arange(x_orig.min(),x_orig.max())
+        pad_size=x_lnrange.size*.1
+        xleft=np.min(x_lnrange)-pad_size
+        xright=np.max(x_lnrange)+pad_size
+        if xleft<0:
+            xleft=0
+        if xright>image.shape[1]:
+            xright=image.shape[1]
+        x_lnrange=np.arange(xleft,xright)
+        if pad==False:
+            x_lnrange=np.arange(x_orig.min(),x_orig.max())
+#         return x_lnrange
+    if show_im==True:
+       
+        if plotline==False:
+            
+            plt.rcParams['figure.figsize'] = (16,9)
+            if overlay==True:
+                plt.imshow(image,alpha=.9)
+            plt.imshow(masked_im)
+            n,m=image.shape
+            xrange=x_lnrange
+            if mode=='Linear':
+                yrange=line[0]*xrange+line[1]
+            if mode=='PCA':
+                y_m,x_m=position_means(masked_im)
+                yrange=slope_proj_inv(directions)*(xrange-x_m)+y_m
+                
+            if mode=='Points':
+                '''pts in form [[x1,y1],[x2,y2]]   '''
+                pts=np.asarray(pts)
+                n,m=image.shape
+                xmin,xmax=np.min(pts[:,0]),np.max(pts[:,0])
+                xrange=np.arange(xmin,xmax)
+                if pts[0,1]<pts[1,1]:
+                    yrange=np.linspace(pts[0,1],pts[1,1],xrange.size)
+                else:
+                    yrange=np.linspace(pts[1,1],pts[0,1],xrange.size)[::-1]
+            plt.plot(xrange,yrange,color='r')
+        if plotline==True:
+            plt.rcParams['figure.figsize'] = (16,9)
+            fig = plt.figure()
+            ax1 = fig.add_subplot(1,2,1)
+            ax2 = fig.add_subplot(1,2,2)
+            ax1.imshow(masked_im)
+            if overlay==True:
+                ax1.imshow(image,alpha=.9)
+            n,m=image.shape
+            x_lnrange=np.arange(x_orig.min(),x_orig.max())
+            pad_size=x_lnrange.size*.1
+            xleft=np.min(x_lnrange)-pad_size
+            xright=np.max(x_lnrange)+pad_size
+            if xleft<0:
+                xleft=0
+            if xright>image.shape[1]:
+                xright=image.shape[1]
+            x_lnrange=np.arange(xleft,xright)
+            xrange=x_lnrange
+            if pad==False:
+                x_lnrange=np.arange(x_orig.min(),x_orig.max())
+            if mode=='Linear':
+                yrange=line[0]*xrange+line[1]
+            if mode=='PCA':
+                y_m,x_m=position_means(masked_im)
+                yrange=slope_proj_inv(directions)*(xrange-x_m)+y_m
+                
+            if mode=='Points':
+                '''pts in form [[x1,y1],[x2,y2]]   '''
+                plt.rcParams['figure.figsize'] = (16,9)
+                pts=np.asarray(pts)
+                n,m=image.shape
+                xmin,xmax=np.min(pts[:,0]),np.max(pts[:,0])
+                xrange=np.arange(xmin,xmax)
+                if pts[0,1]<pts[1,1]:
+                    yrange=np.linspace(pts[0,1],pts[1,1],xrange.size)
+                else:
+                    yrange=np.linspace(pts[1,1],pts[0,1],xrange.size)[::-1]
+                Y=image[yrange.astype(np.int),xrange.astype(np.int)]
+                Y=Y/np.max(Y)
+
+            plt.rcParams['figure.figsize'] = (16,9)
+            ax1.plot(xrange,yrange,color='r')
+            if pad==True:
+                pad_size=int(Y.size*.1)
+                ax2.plot(np.pad(Y,pad_size,'edge'))
+            if pad==False:
+                ax2.plot(Y)
+        return
+
+    if plotline==True:
+        plt.rcParams['figure.figsize'] = (16,9)
+        if pad==True:
+            pad_size=int(Y.size*.1)
+            plt.plot(np.pad(Y,pad_size,'edge'))
+        if pad==False:
+            plt.plot(Y)
+        return
+    if pad==False:
+        return Y
+    pad_size=int(Y.size*.1)
+    return np.pad(Y,pad_size,'edge')
+    

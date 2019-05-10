@@ -1,13 +1,5 @@
-=======
-Credits
-=======
-
-Development Lead
-----------------
+============
+Contributors
+============
 
 * Karl Schliep <kbschliep@gmail.com>
-
-Contributors
-------------
-
-None yet. Why not be the first?
