@@ -2,20 +2,22 @@
 
 """Top-level package for strobopy."""
 
+
+from __future__ import absolute_import, division, print_function
+
+
 __author__ = """Karl Schliep"""
 __email__ = 'kbschliep@gmail.com'
 __version__ = '0.1.0'
+__title__ = "strobopy"
+__description__ = "Analysis package for ultrafast stroboscopic TEM data"
+# __url__ = "https://www.attrs.org/"
+# __uri__ = __url__
+# __doc__ = __description__ + " <" + __uri__ + ">"
 
-from pkg_resources import get_distribution, DistributionNotFound
+__license__ = "mit"
+__copyright__ = "Copyright (c) 2019 Karl Schliep"
 
-try:
-    # Change here if project is renamed and does not equal the package name
-    dist_name = __name__
-    __version__ = get_distribution(dist_name).version
-except DistributionNotFound:
-    __version__ = 'unknown'
-finally:
-    del get_distribution, DistributionNotFound
 
 from src.strobopy.get_dm3 import get_dm3
 from src.strobopy.load_dm3 import load_dm3
